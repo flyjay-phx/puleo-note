@@ -5,7 +5,7 @@
 받아 적은 수업 메모 옆에 **"초등학생도 알아듣게" 내 말로 다시 풀어 쓰는** 학습 노트 웹입니다.
 어려운 내용을 쉽게 다시 쓰다가 막히는 곳이 아직 이해 못 한 곳이라는 생각에서 만들었습니다.
 
-- **배포 주소:** (배포 후 기록)
+- **배포 주소:** https://puleo-note.onrender.com (첫 접속은 서버가 깨어나느라 30초쯤 걸릴 수 있습니다)
 - **기획서:** [PRD.md](PRD.md)
 
 ![목록 화면](docs/screens/01-list.jpg)
@@ -60,8 +60,8 @@ npm test           # 자동 테스트 7개
 
 1. Supabase 새 프로젝트 → SQL Editor에서 `db/schema.sql` 실행 → (시연 메모가 필요하면) `db/seed.sql` 실행
 2. Project Settings → Database → Connection string에서 **Session pooler** 주소를 복사 (Render는 IPv4만 쓰므로 Direct 주소 대신 pooler 주소)
-3. Render → New → Web Service → 이 저장소 연결 (`render.yaml`이 빌드·시작 명령을 채움)
-4. Environment에 `DATABASE_URL` = 2번 주소
+3. Render → New → Blueprint → 이 저장소 연결 (`render.yaml`이 무료 웹 서비스·빌드·시작 명령을 채움)
+4. `DATABASE_URL` 값 칸에 2번 주소
 5. 배포가 끝나면 `https://<서비스이름>.onrender.com/api/health`가 `{"ok":true,"mode":"postgres"}`인지 확인
 
 ## 확인한 것
@@ -74,7 +74,9 @@ npm test           # 자동 테스트 7개
 | 폰 화면(375px)에서 상세 화면 | 확인 | 로컬 |
 | Supabase 첫 연결 시 표 자동 생성 + 시연 메모 3건 입력 | 확인 | 로컬 서버 → Supabase (도쿄 지역) |
 | 메모 저장 → 서버 프로세스 종료 → 다시 시작 → 같은 메모를 그대로 읽음 (제목·상태·노드·태그·한 줄) | 확인 (2026-11-17) | 로컬 서버 → Supabase |
-| 배포 주소에서 같은 흐름 | (배포 후 기록) | |
+| `/api/health` → `{"ok":true,"mode":"postgres"}` | 확인 (2026-11-17) | Render → Supabase |
+| 배포 주소에서 작성(201) → 읽기 → 수정(상태 done) → 상태·태그 거르기 → 빈 칸 저장 거부(400, 칸별 문구) → 삭제(204) → 삭제 후 읽기 404 | 확인 (2026-11-17) | Render → Supabase |
+| 배포 주소를 폰 화면(375px)으로 열어 목록·상세, 가로 넘침 없음 | 확인 (2026-11-17) | Render |
 
 ![빈 칸 저장 시 오류 안내](docs/screens/03-form-error.jpg)
 
