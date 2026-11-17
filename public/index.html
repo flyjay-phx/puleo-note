@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>풀어노트 — 수업 직후, 내 말로 다시 풀기</title>
+  <meta name="description" content="수업 메모 원문 옆에 초등학생도 알아듣게 내 말로 풀어 쓰는 학습 노트" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="top">
+    <a href="#/" class="brand" aria-label="풀어노트 처음 화면">
+      <span class="logo" aria-hidden="true">풀</span>
+      <span>
+        <strong>풀어노트</strong>
+        <small>수업 직후, 내 말로 다시 풀기</small>
+      </span>
+    </a>
+    <a href="#/new" class="btn primary" id="newBtn">+ 새 메모</a>
+  </header>
+
+  <main id="view" tabindex="-1"></main>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <footer class="foot">
+    어려운 걸 쉽게 다시 쓸 수 있어야 진짜 이해한 것 · 시연용 가상 메모가 들어 있습니다
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

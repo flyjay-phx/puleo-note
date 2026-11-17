@@ -1,0 +1,23 @@
+{
+  "name": "puleo-note",
+  "version": "1.0.0",
+  "description": "풀어노트: 수업 메모 원문 옆에 내 말로 풀어 쓰는 학습 노트 웹",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.3.0",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "pg-mem": "^3.0.14"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=20.12"
+  }
+}
