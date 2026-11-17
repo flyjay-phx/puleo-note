@@ -8,7 +8,7 @@
 - **배포 주소:** https://puleo-note.onrender.com (첫 접속은 서버가 깨어나느라 30초쯤 걸릴 수 있습니다)
 - **기획서:** [PRD.md](PRD.md)
 
-![목록 화면](docs/screens/01-list.jpg)
+![목록 화면](docs/screens/01-list.png)
 
 ## 무엇이 다른가
 
@@ -19,7 +19,7 @@
 | 복습 상태 | 처음 봄 · 다시 볼 것 · 이해 완료 색 배지, 상세에서 바로 바꾸고 목록에서 거르기 |
 | 노드·태그 | "노드 05", "#ControlNet"처럼 묶고, 태그를 누르면 그 태그만 |
 
-![상세 화면](docs/screens/02-detail.jpg)
+![상세 화면](docs/screens/02-detail.png)
 
 ## 구조
 
@@ -78,9 +78,7 @@ npm test           # 자동 테스트 7개
 | 배포 주소에서 작성(201) → 읽기 → 수정(상태 done) → 상태·태그 거르기 → 빈 칸 저장 거부(400, 칸별 문구) → 삭제(204) → 삭제 후 읽기 404 | 확인 (2026-11-17) | Render → Supabase |
 | 배포 주소를 폰 화면(375px)으로 열어 목록·상세, 가로 넘침 없음 | 확인 (2026-11-17) | Render |
 
-![빈 칸 저장 시 오류 안내](docs/screens/03-form-error.jpg)
-
-<img src="docs/screens/04-mobile-detail.jpg" alt="폰 화면" width="280">
+<img src="docs/screens/04-mobile-detail.png" alt="폰 화면" width="280">
 
 ## 한계
 

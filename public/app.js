@@ -87,10 +87,28 @@ let allNodes = [];
 async function renderList() {
   document.title = "풀어노트 — 수업 직후, 내 말로 다시 풀기";
   // 노드 고르기 목록을 먼저 채운 뒤 화면을 한 번만 그린다 (다시 그리면서 클릭이 사라지는 것을 막음)
+  const counts = { "": 0, new: 0, review: 0, done: 0 };
   try {
     const all = await api("/notes");
     allNodes = [...new Set(all.map((n) => n.node).filter((n) => n !== null))].sort((a, b) => a - b);
+    counts[""] = all.length;
+    for (const n of all) counts[n.status]++;
   } catch { /* 아래 목록 불러오기에서 오류를 알려 준다 */ }
+
+  // 맨 위 진행 요약: 전체 중 얼마나 이해했는지 막대로 보여 준다
+  const total = counts[""];
+  const pct = (n) => (total ? (n / total) * 100 : 0);
+  const summary = h("section", { class: "summary" },
+    h("h1", {}, counts.review
+      ? ["다시 볼 메모가 ", h("span", { class: "hl" }, `${counts.review}개`), " 있어요"]
+      : total ? ["전부 ", h("span", { class: "hl" }, "한 번씩 풀어 봤어요")] : "오늘 배운 걸 풀어 볼까요"),
+    total ? h("div", { class: "progress", role: "img", "aria-label": `전체 ${total}개 중 이해 완료 ${counts.done}개, 다시 볼 것 ${counts.review}개` },
+      h("div", { class: "nums" }, h("span", {}, "이해 완료"), h("b", {}, `${counts.done} / ${total}`)),
+      h("div", { class: "bar" },
+        h("i", { class: "done", style: `width:${pct(counts.done)}%` }),
+        h("i", { class: "review", style: `width:${pct(counts.review)}%` }))
+    ) : null
+  );
 
   const search = h("input", {
     class: "search", type: "search", placeholder: "제목으로 찾기", value: filters.q, "aria-label": "제목 검색",
@@ -103,9 +121,9 @@ async function renderList() {
 
   const statusChips = [["", "전체"], ["new", "처음 봄"], ["review", "다시 볼 것"], ["done", "이해 완료"]].map(([v, label]) =>
     h("button", {
-      class: "chip", type: "button", "aria-pressed": String(filters.status === v),
+      class: "chip" + (v ? " s-" + v : ""), type: "button", "aria-pressed": String(filters.status === v),
       onclick: () => { filters.status = v; renderList(); },
-    }, label)
+    }, label, h("span", { class: "n" }, counts[v]))
   );
 
   const nodeSelect = h("select", { "aria-label": "노드로 거르기", onchange: (e) => { filters.node = e.target.value; loadCards(); } },
@@ -120,7 +138,7 @@ async function renderList() {
 
   const count = h("p", { class: "count" });
   const grid = h("div", { class: "grid" });
-  view.replaceChildren(h("section", { class: "tools" }, search, h("div", { class: "filters" }, ...statusChips, nodeSelect, tagInfo)), count, grid);
+  view.replaceChildren(summary, h("section", { class: "tools" }, search, h("div", { class: "filters" }, ...statusChips, nodeSelect, tagInfo)), count, grid);
 
   async function loadCards() {
     const p = new URLSearchParams();
@@ -135,7 +153,7 @@ async function renderList() {
       return toast(err.message, true);
     }
     const anyFilter = Object.values(filters).some((v) => v !== "");
-    count.textContent = notes.length ? `메모 ${notes.length}개` : "";
+    count.textContent = notes.length && anyFilter ? `조건에 맞는 메모 ${notes.length}개` : "";
     if (!notes.length) {
       grid.replaceChildren(
         h("div", { class: "empty-box", style: "grid-column: 1 / -1" },
@@ -148,7 +166,7 @@ async function renderList() {
     }
     grid.replaceChildren(...notes.map((n) =>
       h("a", { class: "card", href: `#/note/${n.id}` },
-        n.one_liner ? h("div", { class: "liner" }, n.one_liner) : h("div", { class: "liner empty" }, "오늘의 한 줄을 아직 안 적었어요"),
+        n.one_liner ? h("div", { class: "liner" }, h("span", { class: "hl" }, n.one_liner)) : h("div", { class: "liner empty" }, "오늘의 한 줄을 아직 안 적었어요"),
         h("div", { class: "title" }, n.title),
         h("div", { class: "meta" }, ...badges(n, { clickableTags: true }), h("span", { class: "date" }, fmt(n.updated_at)))
       )
@@ -202,7 +220,7 @@ async function renderDetail(id) {
         h("div", {}, h("h1", {}, note.title), h("div", { class: "meta" }, ...badges(note))),
         h("div", { class: "actions" }, h("a", { class: "btn", href: `#/note/${id}/edit` }, "수정"), delBtn)
       ),
-      note.one_liner ? h("div", { class: "liner-box" }, h("small", {}, "오늘의 한 줄"), note.one_liner) : null,
+      note.one_liner ? h("div", { class: "liner-box" }, h("small", {}, "오늘의 한 줄"), h("span", { class: "hl" }, note.one_liner)) : null,
       h("div", { class: "pair" },
         h("section", { class: "pane" }, h("h2", {}, "수업 메모 원문"), h("div", { class: "body" }, note.original_text)),
         h("section", { class: "pane easy" }, h("h2", {}, "내 말로 풀어 쓰기"),
@@ -259,7 +277,7 @@ async function renderForm(id) {
       field("tags", "태그", tags, { hint: "쉼표로 구분, 10개까지" }),
       h("div", { class: "field" }, h("label", {}, "복습 상태"), seg)
     ),
-    h("div", { class: "pair" },
+    h("div", { class: "pair form-pair" },
       field("original_text", "수업 메모 원문", original, { max: 16000 }),
       field("easy_text", "내 말로 풀어 쓰기", easy, { max: 16000, cls: "easy", hint: "초등학생도 알아듣게" })
     ),
