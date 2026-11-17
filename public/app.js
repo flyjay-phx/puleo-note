@@ -213,6 +213,10 @@ async function renderDetail(id) {
     return b;
   });
 
+  const easyBody = note.easy_text
+    ? h("div", { class: "body" }, note.easy_text)
+    : h("div", { class: "body empty" }, "아직 풀어 쓰지 않았어요. '수정'을 눌러 초등학생도 알아듣게 다시 써 보세요.");
+
   view.replaceChildren(
     h("a", { href: "#/", class: "back" }, "← 목록"),
     h("article", { class: "panel" },
@@ -223,15 +227,150 @@ async function renderDetail(id) {
       note.one_liner ? h("div", { class: "liner-box" }, h("small", {}, "오늘의 한 줄"), h("span", { class: "hl" }, note.one_liner)) : null,
       h("div", { class: "pair" },
         h("section", { class: "pane" }, h("h2", {}, "수업 메모 원문"), h("div", { class: "body" }, note.original_text)),
-        h("section", { class: "pane easy" }, h("h2", {}, "내 말로 풀어 쓰기"),
-          note.easy_text
-            ? h("div", { class: "body" }, note.easy_text)
-            : h("div", { class: "body empty" }, "아직 풀어 쓰지 않았어요. '수정'을 눌러 초등학생도 알아듣게 다시 써 보세요."))
+        h("section", { class: "pane easy" }, h("h2", {}, "내 말로 풀어 쓰기"), easyBody)
       ),
+      kidSection(note, easyBody),
       h("div", { class: "status-switch" }, h("span", {}, "복습 상태"), ...switches),
       h("p", { class: "times" }, `만든 날 ${fmt(note.created_at)} · 고친 날 ${fmt(note.updated_at)}`)
     )
   );
+}
+
+// ---------- AI 초등학생에게 읽혀 보기 (키 없이 브라우저 안에서 도는 AI) ----------
+// 메모는 서버나 외부로 보내지 않는다. 모델 파일(약 1GB)만 처음 한 번 내려받아 브라우저에 보관된다.
+const WEB_LLM_URL = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.86/+esm";
+let kidEngine = null;
+let kidEngineLoading = null;
+let kidProgress = () => {};
+const kidResults = new Map(); // 메모 id → { easy_text, result } (같은 설명이면 다시 보여 준다)
+const loadKidCheck = () => import("./kid-check.mjs");
+
+async function webGpuReady() {
+  try { return !!(navigator.gpu && (await navigator.gpu.requestAdapter())); } catch { return false; }
+}
+
+function getKidEngine() {
+  if (kidEngine) return Promise.resolve(kidEngine);
+  if (!kidEngineLoading) {
+    kidEngineLoading = (async () => {
+      const [kc, wl] = await Promise.all([loadKidCheck(), import(WEB_LLM_URL)]);
+      const worker = new Worker("llm-worker.js", { type: "module" });
+      kidEngine = await wl.CreateWebWorkerMLCEngine(worker, kc.MODEL_ID, { initProgressCallback: (p) => kidProgress(p) });
+      return kidEngine;
+    })().catch((err) => { kidEngineLoading = null; throw err; });
+  }
+  return kidEngineLoading;
+}
+
+// 설명 안의 어려운 낱말에 물결 밑줄을 친다 (글자는 텍스트로만 넣는다)
+function markWords(el, text, words) {
+  if (!words.length) return el.replaceChildren(text);
+  const esc = words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).sort((a, b) => b.length - a.length);
+  const parts = text.split(new RegExp(`(${esc.join("|")})`, "g"));
+  el.replaceChildren(...parts.map((p) => (words.includes(p) ? h("mark", { class: "hard" }, p) : p)));
+}
+
+function kidSection(note, easyBody) {
+  const box = h("section", { class: "kid", "aria-labelledby": "kid-title" });
+  const rulesList = h("ul", { class: "kid-rules" });
+  const aiArea = h("div", { class: "kid-ai", "aria-live": "polite" });
+  const btn = h("button", { class: "btn primary", type: "button" });
+  const status = h("p", { class: "kid-status" });
+
+  box.append(
+    h("div", { class: "kid-head" },
+      h("div", {},
+        h("h2", { id: "kid-title" }, "AI 초등학생에게 읽혀 보기"),
+        h("p", {}, "'내 말로' 쓴 설명만 읽고, 알아들은 대로 다시 말하고 모르는 걸 물어봐요.")),
+      btn),
+    h("div", { class: "kid-grid" },
+      h("div", {}, h("h3", {}, "바로 보이는 점"), rulesList),
+      h("div", {}, h("h3", {}, "AI 초등학생의 반응"), aiArea)),
+    status
+  );
+
+  loadKidCheck().then((kc) => {
+    const rules = kc.ruleChecks(note);
+    rulesList.replaceChildren(...(rules.length
+      ? rules.map((r) => h("li", { class: "rule " + r.kind }, r.text))
+      : [h("li", { class: "rule ok" }, "규칙 검사에서 걸린 곳이 없어요.")]));
+  });
+
+  const showResult = (res, kc) => {
+    aiArea.replaceChildren(...[
+      h("div", { class: "kid-said" }, h("small", {}, "알아들은 내용"), res.understood),
+      h("small", { class: "kid-label" }, "궁금한 점"),
+      h("ul", { class: "kid-questions" }, ...res.questions.map((q) => h("li", {}, q))),
+      res.hard_words.length
+        ? h("div", { class: "kid-words" }, h("small", { class: "kid-label" }, "모르는 말"), ...res.hard_words.map((w) => h("mark", { class: "hard" }, w)))
+        : null,
+    ].filter(Boolean));
+    markWords(easyBody, note.easy_text, res.hard_words);
+    status.textContent = `${kc.MODEL_LABEL} · 이 브라우저 안에서 실행 · ${res.sec}초`
+      + (res.dropped ? ` · 설명에 없거나 너무 쉬운 낱말 ${res.dropped}개는 뺐어요` : "")
+      + (res.truncated ? " · 설명이 길어 앞부분만 읽었어요" : "")
+      + " · 작은 AI라 엉뚱한 말을 할 수 있어요. 참고만 하세요.";
+    btn.textContent = "다시 읽혀 보기";
+  };
+
+  if (!note.easy_text.trim()) {
+    btn.textContent = "읽혀 보기";
+    btn.disabled = true;
+    aiArea.replaceChildren(h("p", { class: "muted" }, "'내 말로 풀어 쓰기'를 먼저 적으면 읽혀 볼 수 있어요."));
+    return box;
+  }
+
+  const saved = kidResults.get(note.id);
+  if (saved && saved.easy_text === note.easy_text) {
+    loadKidCheck().then((kc) => showResult(saved.result, kc));
+  } else {
+    btn.textContent = kidEngine ? "읽혀 보기" : "AI 모델 받고 읽혀 보기";
+    aiArea.replaceChildren(h("p", { class: "muted" }, kidEngine
+      ? "버튼을 누르면 기기에 따라 10초~1분 동안 읽어요."
+      : "처음 한 번 AI 모델(약 1GB)을 이 기기에 내려받아요. 와이파이에서 눌러 주세요. 메모는 서버나 외부로 보내지 않고 이 브라우저 안에서만 읽어요. PC의 크롬·엣지 최신판에서 돼요."));
+  }
+
+  btn.addEventListener("click", async () => {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const bar = h("i");
+    const label = h("span", {}, "준비하는 중…");
+    try {
+      if (!(await webGpuReady())) {
+        throw new Error("이 브라우저에서는 브라우저 AI를 쓸 수 없어요. PC의 크롬이나 엣지 최신판에서 열어 주세요. (폰은 아직 대부분 안 돼요)");
+      }
+      const kc = await loadKidCheck();
+      aiArea.replaceChildren(h("div", { class: "kid-progress" }, h("div", { class: "bar" }, bar), label));
+      kidProgress = (p) => {
+        const pct = Math.round((p.progress || 0) * 100);
+        bar.style.width = pct + "%";
+        label.textContent = pct >= 100 ? "모델을 준비하는 중…"
+          : `AI 모델 준비 중 ${pct}% (처음엔 약 1GB를 받고, 다음부터는 저장해 둔 것을 불러와요)`;
+      };
+      const engine = await getKidEngine();
+      bar.style.width = "100%";
+      label.textContent = "AI가 설명을 읽는 중… (기기에 따라 10초~1분)";
+      const { messages, truncated } = kc.buildMessages(note);
+      const t0 = performance.now();
+      const reply = await engine.chat.completions.create({
+        messages, temperature: 0.4, max_tokens: 400,
+        response_format: { type: "json_object", schema: JSON.stringify(kc.KID_SCHEMA) },
+        extra_body: { enable_thinking: false },
+      });
+      const res = kc.parseKidAnswer(reply.choices[0].message.content, note.easy_text);
+      res.sec = ((performance.now() - t0) / 1000).toFixed(1);
+      res.truncated = truncated;
+      kidResults.set(note.id, { easy_text: note.easy_text, result: res });
+      if (box.isConnected) showResult(res, kc);
+    } catch (err) {
+      aiArea.replaceChildren(h("p", { class: "kid-error" }, err.message || "AI를 실행하지 못했어요."));
+      btn.textContent = kidEngine ? "다시 해 보기" : "AI 모델 받고 읽혀 보기";
+    } finally {
+      kidProgress = () => {};
+      btn.disabled = false;
+    }
+  });
+  return box;
 }
 
 // ---------- 작성·수정 ----------

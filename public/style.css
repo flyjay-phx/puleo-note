@@ -169,6 +169,32 @@ button.tag:hover { color: var(--ink); text-decoration: underline; }
 .status-switch .chip { border-color: var(--line-strong); }
 .times { color: var(--muted); font-size: 12px; margin: 16px 0 0; font-variant-numeric: tabular-nums; }
 
+/* AI 초등학생에게 읽혀 보기 */
+.kid { margin-top: 24px; border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 20px 22px; background: var(--card); }
+.kid-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+.kid-head h2 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: 20px; letter-spacing: -.02em; }
+.kid-head p { margin: 2px 0 0; color: var(--ink-2); font-size: 14px; }
+.kid-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 20px; }
+.kid h3 { margin: 0 0 8px; font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .06em; }
+.kid-rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.rule { font-size: 14px; padding: 8px 10px 8px 30px; border-radius: 8px; background: var(--paper); position: relative; color: var(--ink-2); }
+.rule::before { content: "!"; position: absolute; left: 10px; top: 9px; width: 14px; height: 14px; border-radius: 50%; background: var(--review); color: #fff; font-size: 10px; font-weight: 800; display: grid; place-items: center; }
+.rule.ok::before { content: "✓"; background: var(--done); }
+.kid-ai .muted { color: var(--muted); font-size: 14px; margin: 0; }
+.kid-said { font-size: 16px; line-height: 1.7; padding: 12px 14px; border-radius: 8px; background: var(--hl-soft); margin-bottom: 12px; }
+.kid-said small, .kid-label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+.kid-questions { margin: 0 0 12px; padding-left: 20px; font-size: 15px; }
+.kid-questions li + li { margin-top: 4px; }
+.kid-words { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.kid-words .kid-label { flex-basis: 100%; margin: 0; }
+mark.hard { background: none; color: inherit; text-decoration: underline wavy var(--review); text-underline-offset: 4px; text-decoration-thickness: 1.5px; }
+.kid-words mark.hard { padding: 2px 8px; border-radius: 6px; background: var(--review-bg); text-decoration: none; color: var(--review); font-size: 13px; font-weight: 700; }
+.kid-progress { display: grid; gap: 8px; font-size: 14px; color: var(--ink-2); }
+.kid-progress .bar i { background: var(--ink); transition: width .3s; width: 0; }
+.kid-error { color: var(--danger); font-size: 14px; font-weight: 600; margin: 0; }
+.kid-status { margin: 14px 0 0; color: var(--muted); font-size: 12px; }
+.kid-status:empty { display: none; }
+
 /* 작성·수정 폼 */
 form h1 { margin: 0 0 6px; font-family: var(--serif); font-weight: 900; font-size: 28px; letter-spacing: -.03em; }
 .tip { color: var(--ink-2); font-size: 15px; margin-bottom: 24px; }
@@ -217,6 +243,9 @@ form h1 + .field { margin-top: 20px; }
   .row { grid-template-columns: 1fr; }
   .pair { grid-template-columns: 1fr; }
   .pane + .pane { border-left: 0; border-top: 1px solid var(--line-strong); }
+  .kid { padding: 16px; }
+  .kid-grid { grid-template-columns: 1fr; }
+  .kid-head .btn { width: 100%; }
   .panel { padding: 20px 16px; }
   .field textarea { min-height: 170px; }
   .grid { grid-template-columns: 1fr; }
