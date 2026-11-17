@@ -39,4 +39,16 @@ function createPool() {
   return { pool, mode: "postgres" };
 }
 
-module.exports = { createPool, createMemoryPool };
+// Postgres에 처음 연결할 때 표가 없으면 만들고, 표가 비어 있으면 시연 메모를 넣는다.
+// schema.sql은 "if not exists"라서 여러 번 실행해도 기존 데이터는 그대로다.
+async function initDatabase(pool) {
+  await pool.query(SCHEMA);
+  const { rows } = await pool.query("select count(*)::int as n from notes");
+  if (rows[0].n === 0 && process.env.SEED_DEMO !== "false") {
+    await pool.query(SEED);
+    return { seeded: true };
+  }
+  return { seeded: false, count: rows[0].n };
+}
+
+module.exports = { createPool, createMemoryPool, initDatabase };
